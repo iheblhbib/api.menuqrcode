@@ -165,7 +165,13 @@ try {
     Response::error($e->errorCode(), $e->getMessage(), $e->statusCode(), $e->fields());
 } catch (\Throwable $e) {
     if ($debug) {
-        Response::error('SERVER_ERROR', $e->getMessage(), 500);
+        // File/line included only in debug mode — needed once to track down
+        // a live-vs-local discrepancy (a ParseError whose message alone
+        // didn't say which deployed file it came from).
+        Response::error('SERVER_ERROR', $e->getMessage(), 500, [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ]);
     } else {
         error_log($e->getMessage());
         Response::error('SERVER_ERROR', 'An unexpected error occurred', 500);
