@@ -1,0 +1,19 @@
+# Secrets — never commit real DB creds / JWT secret. Server's own .env is
+# set directly on cPanel (File Manager or Terminal), not deployed via git.
+.env
+
+# Runtime data — user-uploaded images and logs live on the server, not in
+# version control; the .gitkeep placeholders keep the folder structure.
+/public/uploads/*
+!/public/uploads/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+
+# Composer (not required per current architecture, but ignore if ever added)
+/vendor/
+composer.lock
+
+# OS / tool junk
+*.stackdump
+.DS_Store
+Thumbs.db
