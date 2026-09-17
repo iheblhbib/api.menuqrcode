@@ -21,13 +21,20 @@ class UserRepository
         $this->db = Database::connection();
     }
 
-    public function findByEmailAndTypes(string $email, array $types): ?array
+    /**
+     * The real site's login form asks for "pseudo" (username), not email —
+     * confirmed live (input name="pseudo" on https://app.menuqrcode.tn) and
+     * by the data: only 217/255 gestionnaire accounts have an email set,
+     * vs. 254/255 for pseudo. Matches either column so an account that does
+     * have a real email attached keeps working if someone types that instead.
+     */
+    public function findByIdentifierAndTypes(string $identifier, array $types): ?array
     {
         $placeholders = implode(',', array_fill(0, count($types), '?'));
         $stmt = $this->db->prepare(
-            "SELECT id, name, email, password, statut, type FROM user WHERE email = ? AND type IN ($placeholders) LIMIT 1"
+            "SELECT id, name, email, password, statut, type FROM user WHERE (pseudo = ? OR email = ?) AND type IN ($placeholders) LIMIT 1"
         );
-        $stmt->execute(array_merge([$email], $types));
+        $stmt->execute(array_merge([$identifier, $identifier], $types));
         $row = $stmt->fetch();
         return $row ?: null;
     }

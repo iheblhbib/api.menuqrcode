@@ -27,17 +27,17 @@ class AuthController
 
     private function login(Request $request, array $types, string $role): void
     {
-        Validator::required($request->body, ['email', 'password']);
+        Validator::required($request->body, ['pseudo', 'password']);
 
-        $email = strtolower(trim((string) $request->input('email')));
+        $identifier = trim((string) $request->input('pseudo'));
         $password = (string) $request->input('password');
 
         $users = new UserRepository();
-        $account = $users->findByEmailAndTypes($email, $types);
+        $account = $users->findByIdentifierAndTypes($identifier, $types);
 
         // Legacy scheme confirmed by the user: unsalted MD5, matching the existing web login.
         if (!$account || !hash_equals($account['password'], md5($password))) {
-            throw new AuthException('Invalid email or password', 'INVALID_CREDENTIALS');
+            throw new AuthException('Invalid username or password', 'INVALID_CREDENTIALS');
         }
 
         if ($account['statut'] !== 'Activer') {
