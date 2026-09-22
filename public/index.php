@@ -81,6 +81,10 @@ $router->get('/api/v1/admin/auth/me', [AuthController::class, 'me'], [AuthMiddle
 // --- Client-scoped menu management ---
 $clientOnly = [AuthMiddleware::role('client')];
 $router->get('/api/v1/client/dashboard/stats', [DashboardController::class, 'clientStats'], $clientOnly);
+$router->get('/api/v1/client/dashboard/access-series', [DashboardController::class, 'accessSeries'], $clientOnly);
+$router->get('/api/v1/client/dashboard/logins-series', [DashboardController::class, 'loginsSeries'], $clientOnly);
+$router->get('/api/v1/client/dashboard/ratings-distribution', [DashboardController::class, 'ratingsDistribution'], $clientOnly);
+$router->get('/api/v1/client/dashboard/browser-stats', [DashboardController::class, 'browserStats'], $clientOnly);
 $router->get('/api/v1/client/categories', [CategoryController::class, 'index'], $clientOnly);
 $router->post('/api/v1/client/categories', [CategoryController::class, 'store'], $clientOnly);
 $router->patch('/api/v1/client/categories/reorder', [CategoryController::class, 'reorder'], $clientOnly);
