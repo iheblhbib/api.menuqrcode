@@ -36,15 +36,7 @@ class AuthController
         $account = $users->findByIdentifierAndTypes($identifier, $types);
 
         // Legacy scheme confirmed by the user: unsalted MD5, matching the existing web login.
-        //
-        // TEMPORARY (remove right after this test): also accept the raw
-        // stored hash typed directly as the password, for the one case where
-        // the real plaintext password for a real prod account isn't known but
-        // its hash was read from the DB directly (by the account's own
-        // platform operator, not a third party). Never leave this live.
-        $matchesHashedPassword = $account && hash_equals($account['password'], md5($password));
-        $matchesRawHash = $account && hash_equals($account['password'], $password);
-        if (!$account || !($matchesHashedPassword || $matchesRawHash)) {
+        if (!$account || !hash_equals($account['password'], md5($password))) {
             throw new AuthException('Invalid username or password', 'INVALID_CREDENTIALS');
         }
 
