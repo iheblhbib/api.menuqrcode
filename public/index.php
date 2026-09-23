@@ -16,6 +16,7 @@ use App\Controllers\LanguageController;
 use App\Controllers\MarketController;
 use App\Controllers\MenuItemController;
 use App\Controllers\QrCodeController;
+use App\Controllers\TranslateController;
 use App\Core\ApiException;
 use App\Core\AuthMiddleware;
 use App\Core\Request;
@@ -123,6 +124,8 @@ $router->delete('/api/v1/client/menu-items/{id}/translations/{langueId}', [MenuI
 
 $router->get('/api/v1/client/markets/{marketId}/languages', [LanguageController::class, 'forMarket'], $clientOnly);
 $router->put('/api/v1/client/markets/{marketId}/languages/{langueId}', [LanguageController::class, 'setEnabled'], $clientOnly);
+
+$router->post('/api/v1/client/translate', [TranslateController::class, 'translate'], $clientOnly);
 
 $router->get('/api/v1/client/markets/{marketId}/feedback', [FeedbackController::class, 'forMarket'], $clientOnly);
 
