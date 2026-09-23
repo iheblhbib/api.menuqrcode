@@ -94,11 +94,37 @@ class CategoryRepository
         $stmt->execute([$id]);
     }
 
+    /**
+     * `$orderedIds` may be a filtered subset (e.g. just the "Actifs" tab) —
+     * merge its new relative order into the full sibling list so items
+     * outside the subset (hidden by the filter) keep their relative slot
+     * instead of being pushed to the end or renumbered on top of each other.
+     */
     public function reorder(int $marketId, array $orderedIds): void
     {
+        $all = $this->db->prepare(
+            "SELECT id FROM categorie WHERE market = ? AND etat = '0' ORDER BY order_categorie ASC, id ASC"
+        );
+        $all->execute([$marketId]);
+        $allIds = array_map('intval', array_column($all->fetchAll(), 'id'));
+
+        $subset = array_map('intval', $orderedIds);
+        $subsetSet = array_flip($subset);
+        $slots = [];
+        foreach ($allIds as $index => $id) {
+            if (isset($subsetSet[$id])) {
+                $slots[] = $index;
+            }
+        }
+
+        $merged = $allIds;
+        foreach ($slots as $i => $slotIndex) {
+            $merged[$slotIndex] = $subset[$i];
+        }
+
         $stmt = $this->db->prepare("UPDATE categorie SET order_categorie = ? WHERE id = ? AND market = ? AND etat = '0'");
-        foreach ($orderedIds as $position => $id) {
-            $stmt->execute([$position + 1, (int) $id, $marketId]);
+        foreach ($merged as $position => $id) {
+            $stmt->execute([$position + 1, $id, $marketId]);
         }
     }
 

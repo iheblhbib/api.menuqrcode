@@ -139,16 +139,62 @@ class CategoryTreeRepository
         $stmt->execute($params);
     }
 
-    /** Reorders sibling nodes at one level under the same parent (or market root). */
+    /**
+     * Reorders sibling nodes at one level under the same parent (or market
+     * root). `$orderedIds` may be a filtered subset (e.g. just "Actifs") —
+     * the first id's own parent scope is used to fetch every sibling and
+     * merge the subset's new relative order into the right slots, so items
+     * hidden by the filter keep their position instead of being scrambled.
+     */
     public function reorder(string $level, array $orderedIds): void
     {
-        if (!in_array($level, ['categorie_sub_sub', 'categorie_sub'], true)) {
+        if (!in_array($level, ['categorie_sub_sub', 'categorie_sub'], true) || empty($orderedIds)) {
             return;
         }
         // $level is whitelisted above, safe to interpolate into the query.
-        $stmt = $this->db->prepare("UPDATE $level SET order_categorie = ? WHERE id = ? AND etat = '0'");
-        foreach ($orderedIds as $position => $id) {
-            $stmt->execute([$position + 1, (int) $id]);
+        $anchor = $this->db->prepare("SELECT market, categorie FROM $level WHERE id = ? AND etat = '0'");
+        $anchor->execute([(int) $orderedIds[0]]);
+        $row = $anchor->fetch();
+        if (!$row) {
+            return;
+        }
+
+        if ($level === 'categorie_sub_sub') {
+            // No parent column of its own — sibling scope is the whole market.
+            $siblings = $this->db->prepare(
+                "SELECT id FROM categorie_sub_sub WHERE market = ? AND etat = '0' ORDER BY order_categorie ASC, id ASC"
+            );
+            $siblings->execute([$row['market']]);
+        } elseif ($row['categorie'] === null) {
+            $siblings = $this->db->prepare(
+                "SELECT id FROM categorie_sub WHERE market = ? AND categorie IS NULL AND etat = '0' ORDER BY order_categorie ASC, id ASC"
+            );
+            $siblings->execute([$row['market']]);
+        } else {
+            $siblings = $this->db->prepare(
+                "SELECT id FROM categorie_sub WHERE categorie = ? AND etat = '0' ORDER BY order_categorie ASC, id ASC"
+            );
+            $siblings->execute([$row['categorie']]);
+        }
+        $allIds = array_map('intval', array_column($siblings->fetchAll(), 'id'));
+
+        $subset = array_map('intval', $orderedIds);
+        $subsetSet = array_flip($subset);
+        $slots = [];
+        foreach ($allIds as $index => $id) {
+            if (isset($subsetSet[$id])) {
+                $slots[] = $index;
+            }
+        }
+
+        $merged = $allIds;
+        foreach ($slots as $i => $slotIndex) {
+            $merged[$slotIndex] = $subset[$i];
+        }
+
+        $update = $this->db->prepare("UPDATE $level SET order_categorie = ? WHERE id = ? AND etat = '0'");
+        foreach ($merged as $position => $id) {
+            $update->execute([$position + 1, $id]);
         }
     }
 
@@ -166,7 +212,7 @@ class CategoryTreeRepository
     {
         // $table is only ever one of the literal strings above, never request input.
         $stmt = $this->db->prepare(
-            "SELECT id, market, libelle, statut, image, icon, order_categorie, created
+            "SELECT id, market, libelle, statut, image, icon, display_image, order_categorie, created
              FROM $table WHERE $where AND etat = '0'
              ORDER BY order_categorie ASC, id ASC"
         );

@@ -133,15 +133,26 @@ class CategoryTreeController
     private function withImageUrls(array $result): array
     {
         foreach ($result['items'] as &$item) {
-            $item['image'] = Url::asset($item['image']);
+            $item['image'] = self::resolveImage($item);
         }
         return $result;
     }
 
     private function withImageUrl(array $node): array
     {
-        $node['image'] = Url::asset($node['image']);
+        $node['image'] = self::resolveImage($node);
         return $node;
+    }
+
+    /**
+     * "Afficher l'image" (display_image, '1' = Oui) — when off, never send the
+     * real uploaded image, only the generic placeholder. Same convention as
+     * CategoryController::withImageUrl().
+     */
+    private static function resolveImage(array $node): ?string
+    {
+        $path = ($node['display_image'] ?? null) === '1' ? ($node['image'] ?? null) : '../app.menuqrcode.tn/img/no-photo.webp';
+        return Url::asset($path);
     }
 
     public function translations(Request $request): void

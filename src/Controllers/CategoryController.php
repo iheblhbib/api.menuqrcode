@@ -91,9 +91,11 @@ class CategoryController
         Response::success($this->withImageUrl($repo->find($id)));
     }
 
+    /** "Afficher l'image" (display_image, '1' = Oui) — when off, never send the real uploaded image, only the generic placeholder. */
     private function withImageUrl(array $category): array
     {
-        $category['image'] = Url::asset($category['image']);
+        $path = ($category['display_image'] ?? null) === '1' ? ($category['image'] ?? null) : '../app.menuqrcode.tn/img/no-photo.webp';
+        $category['image'] = Url::asset($path);
         return $category;
     }
 

@@ -93,9 +93,11 @@ class MenuItemController
         Response::success($this->withImageUrl($repo->find($id)));
     }
 
+    /** "Afficher l'image" (display_image, '1' = Oui) — when off, never send the real uploaded image, only the generic placeholder. */
     private function withImageUrl(array $article): array
     {
-        $article['image'] = Url::asset($article['image']);
+        $path = ($article['display_image'] ?? null) === '1' ? ($article['image'] ?? null) : '../app.menuqrcode.tn/img/no-photo.webp';
+        $article['image'] = Url::asset($path);
         return $article;
     }
 
