@@ -46,6 +46,7 @@ class CategoryController
             'image' => $request->input('image'),
             'icon' => $request->input('icon'),
             'statut' => $request->input('statut', 'Activer'),
+            'display_image' => $request->input('display_image'),
             // Nests this category under a categorie_sub node when provided
             // (see CategoryTreeRepository) — null/omitted stays top-level.
             'parent_id' => $request->input('parent_id'),

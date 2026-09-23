@@ -123,7 +123,7 @@ class CategoryTreeRepository
 
         $fields = [];
         $params = [':id' => $id];
-        foreach (['libelle', 'statut', 'image'] as $field) {
+        foreach (['libelle', 'statut', 'image', 'display_image'] as $field) {
             if (array_key_exists($field, $data)) {
                 $fields[] = "$field = :$field";
                 $params[":$field"] = $data[$field];

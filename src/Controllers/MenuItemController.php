@@ -47,6 +47,7 @@ class MenuItemController
             'description' => $request->input('description'),
             'image' => $request->input('image'),
             'statut' => $request->input('statut', 'Activer'),
+            'display_image' => $request->input('display_image'),
             'type' => $request->input('type', 'product'),
         ]);
 

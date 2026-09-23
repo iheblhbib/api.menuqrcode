@@ -70,7 +70,7 @@ class CategoryTreeController
         $this->assertNodeOwned($request, $level, $id);
 
         $repo = new CategoryTreeRepository();
-        $repo->update($level, $id, array_intersect_key($request->body, array_flip(['libelle', 'statut', 'image'])));
+        $repo->update($level, $id, array_intersect_key($request->body, array_flip(['libelle', 'statut', 'image', 'display_image'])));
 
         $node = $repo->find($level, $id);
         Response::success($node !== null ? $this->withImageUrl($node) : null);
