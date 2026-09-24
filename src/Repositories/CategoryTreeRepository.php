@@ -114,6 +114,34 @@ class CategoryTreeRepository
         $this->db->prepare("UPDATE $level SET etat = '1' WHERE id = ?")->execute([$id]);
     }
 
+    /** For the Archive screen — everything soft-deleted at this level in this market. */
+    public function listDeleted(string $level, int $marketId): array
+    {
+        if (!in_array($level, ['categorie_sub_sub', 'categorie_sub'], true)) {
+            return [];
+        }
+        // $level is whitelisted above, safe to interpolate into the query.
+        $stmt = $this->db->prepare(
+            "SELECT id, market, libelle, statut, image, icon, display_image, order_categorie, created
+             FROM $level WHERE market = ? AND etat = '1'
+             ORDER BY id DESC"
+        );
+        $stmt->execute([$marketId]);
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $row['level'] = $level;
+        }
+        return $rows;
+    }
+
+    public function restore(string $level, int $id): void
+    {
+        if (!in_array($level, ['categorie_sub_sub', 'categorie_sub'], true)) {
+            return;
+        }
+        $this->db->prepare("UPDATE $level SET etat = '0' WHERE id = ?")->execute([$id]);
+    }
+
     /** Renames (or otherwise edits) a categorie_sub_sub / categorie_sub node. */
     public function update(string $level, int $id, array $data): void
     {

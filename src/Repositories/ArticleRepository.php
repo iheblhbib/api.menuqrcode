@@ -93,6 +93,34 @@ class ArticleRepository
         $stmt->execute([$id]);
     }
 
+    /** For the Archive screen — everything soft-deleted in this market. */
+    public function listDeletedForMarket(int $marketId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT id, market, categorie, libelle, prix, description, image, statut, display_image, icon, order_categorie, type, created
+             FROM article
+             WHERE market = ? AND etat = '1'
+             ORDER BY id DESC"
+        );
+        $stmt->execute([$marketId]);
+        return $stmt->fetchAll();
+    }
+
+    /** Which market this row belongs to, regardless of etat (deleted or not) — for restore's ownership check. */
+    public function marketOfAny(int $id): ?int
+    {
+        $stmt = $this->db->prepare('SELECT market FROM article WHERE id = ? LIMIT 1');
+        $stmt->execute([$id]);
+        $row = $stmt->fetch();
+        return $row ? (int) $row['market'] : null;
+    }
+
+    public function restore(int $id): void
+    {
+        $stmt = $this->db->prepare("UPDATE article SET etat = '0' WHERE id = ?");
+        $stmt->execute([$id]);
+    }
+
     private function nextOrder(int $categoryId): int
     {
         $stmt = $this->db->prepare("SELECT MAX(order_categorie) AS max_order FROM article WHERE categorie = ? AND etat = '0'");

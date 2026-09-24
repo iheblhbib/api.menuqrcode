@@ -6,6 +6,7 @@ use App\Config\Env;
 use App\Controllers\AdminClientController;
 use App\Controllers\AdminMarketController;
 use App\Controllers\AdminQrCodeController;
+use App\Controllers\ArchiveController;
 use App\Controllers\AuthController;
 use App\Controllers\CategoryController;
 use App\Controllers\CategoryTreeController;
@@ -126,6 +127,9 @@ $router->get('/api/v1/client/markets/{marketId}/languages', [LanguageController:
 $router->put('/api/v1/client/markets/{marketId}/languages/{langueId}', [LanguageController::class, 'setEnabled'], $clientOnly);
 
 $router->post('/api/v1/client/translate', [TranslateController::class, 'translate'], $clientOnly);
+
+$router->get('/api/v1/client/archive', [ArchiveController::class, 'index'], $clientOnly);
+$router->post('/api/v1/client/archive/restore', [ArchiveController::class, 'restore'], $clientOnly);
 
 $router->get('/api/v1/client/markets/{marketId}/feedback', [FeedbackController::class, 'forMarket'], $clientOnly);
 

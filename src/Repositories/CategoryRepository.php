@@ -94,6 +94,34 @@ class CategoryRepository
         $stmt->execute([$id]);
     }
 
+    /** For the Archive screen — everything soft-deleted in this market. */
+    public function listDeletedForMarket(int $marketId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT id, market, libelle, statut, image, icon, display_image, order_categorie, created
+             FROM categorie
+             WHERE market = ? AND etat = '1'
+             ORDER BY id DESC"
+        );
+        $stmt->execute([$marketId]);
+        return $stmt->fetchAll();
+    }
+
+    /** Which market this row belongs to, regardless of etat (deleted or not) — for restore's ownership check. */
+    public function marketOfAny(int $id): ?int
+    {
+        $stmt = $this->db->prepare('SELECT market FROM categorie WHERE id = ? LIMIT 1');
+        $stmt->execute([$id]);
+        $row = $stmt->fetch();
+        return $row ? (int) $row['market'] : null;
+    }
+
+    public function restore(int $id): void
+    {
+        $stmt = $this->db->prepare("UPDATE categorie SET etat = '0' WHERE id = ?");
+        $stmt->execute([$id]);
+    }
+
     /**
      * `$orderedIds` may be a filtered subset (e.g. just the "Actifs" tab) —
      * merge its new relative order into the full sibling list so items
