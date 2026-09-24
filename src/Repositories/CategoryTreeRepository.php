@@ -40,7 +40,15 @@ class CategoryTreeRepository
         $this->db = Database::connection();
     }
 
-    /** Auto-detects the top of this market's category tree. */
+    /**
+     * Auto-detects the top of this market's category tree by trying each
+     * level in turn — but when a market has *no* categories at all yet
+     * (brand new, or every root item since deleted), there's nothing to
+     * detect from, so that fallback must respect the market's own
+     * `niveau` setting ('1'=article, '2'=categorie, '3'=categorie_sub,
+     * '4'=categorie_sub_sub) rather than always landing on 'categorie'
+     * regardless of how the market is actually configured.
+     */
     public function roots(int $marketId): array
     {
         $subSub = $this->queryLevel('categorie_sub_sub', 'market = ?', [$marketId]);
@@ -54,7 +62,26 @@ class CategoryTreeRepository
         }
 
         $cat = $this->queryLevel('categorie', 'market = ? AND categorie IS NULL', [$marketId]);
-        return ['level' => 'categorie', 'items' => $cat];
+        if (!empty($cat)) {
+            return ['level' => 'categorie', 'items' => $cat];
+        }
+
+        return ['level' => $this->rootLevelForEmptyMarket($marketId), 'items' => []];
+    }
+
+    private const NIVEAU_TO_ROOT_LEVEL = [
+        '4' => 'categorie_sub_sub',
+        '3' => 'categorie_sub',
+        '2' => 'categorie',
+        '1' => 'categorie',
+    ];
+
+    private function rootLevelForEmptyMarket(int $marketId): string
+    {
+        $stmt = $this->db->prepare('SELECT niveau FROM market WHERE id = ? LIMIT 1');
+        $stmt->execute([$marketId]);
+        $niveau = (string) ($stmt->fetchColumn() ?: '2');
+        return self::NIVEAU_TO_ROOT_LEVEL[$niveau] ?? 'categorie';
     }
 
     public function children(string $parentLevel, int $parentId): array
