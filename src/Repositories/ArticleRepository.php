@@ -93,16 +93,16 @@ class ArticleRepository
         $stmt->execute([$id]);
     }
 
-    /** For the Archive screen — everything soft-deleted in this market. */
-    public function listDeletedForMarket(int $marketId): array
+    /** For the article list screen's own Archive icon — deleted articles in this category only. */
+    public function listDeletedForCategory(int $categoryId): array
     {
         $stmt = $this->db->prepare(
             "SELECT id, market, categorie, libelle, prix, description, image, statut, display_image, icon, order_categorie, type, created
              FROM article
-             WHERE market = ? AND etat = '1'
+             WHERE categorie = ? AND etat = '1'
              ORDER BY id DESC"
         );
-        $stmt->execute([$marketId]);
+        $stmt->execute([$categoryId]);
         return $stmt->fetchAll();
     }
 

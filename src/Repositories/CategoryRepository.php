@@ -94,19 +94,6 @@ class CategoryRepository
         $stmt->execute([$id]);
     }
 
-    /** For the Archive screen — everything soft-deleted in this market. */
-    public function listDeletedForMarket(int $marketId): array
-    {
-        $stmt = $this->db->prepare(
-            "SELECT id, market, libelle, statut, image, icon, display_image, order_categorie, created
-             FROM categorie
-             WHERE market = ? AND etat = '1'
-             ORDER BY id DESC"
-        );
-        $stmt->execute([$marketId]);
-        return $stmt->fetchAll();
-    }
-
     /** Which market this row belongs to, regardless of etat (deleted or not) — for restore's ownership check. */
     public function marketOfAny(int $id): ?int
     {

@@ -114,22 +114,48 @@ class CategoryTreeRepository
         $this->db->prepare("UPDATE $level SET etat = '1' WHERE id = ?")->execute([$id]);
     }
 
-    /** For the Archive screen — everything soft-deleted at this level in this market. */
-    public function listDeleted(string $level, int $marketId): array
+    /**
+     * For a screen's own Archive icon — deleted children of this specific
+     * parent node only (mirrors children()'s own scoping), not the whole
+     * market's deleted items.
+     */
+    public function childrenDeleted(string $parentLevel, int $parentId): array
     {
-        if (!in_array($level, ['categorie_sub_sub', 'categorie_sub'], true)) {
+        $childLevel = self::CHILD_LEVEL[$parentLevel] ?? null;
+        if ($childLevel === null) {
             return [];
         }
-        // $level is whitelisted above, safe to interpolate into the query.
+        return $this->queryLevelDeleted($childLevel, 'categorie = ?', [$parentId]);
+    }
+
+    /**
+     * For the market-root screen's own Archive icon — deleted items at
+     * [$level] (the market's current root level, as roots() reports it),
+     * scoped to the market root only (mirrors roots()'s own scoping).
+     */
+    public function rootDeleted(string $level, int $marketId): array
+    {
+        if ($level === 'categorie_sub_sub') {
+            return $this->queryLevelDeleted($level, 'market = ?', [$marketId]);
+        }
+        if (in_array($level, ['categorie_sub', 'categorie'], true)) {
+            return $this->queryLevelDeleted($level, 'market = ? AND categorie IS NULL', [$marketId]);
+        }
+        return [];
+    }
+
+    private function queryLevelDeleted(string $table, string $where, array $params): array
+    {
+        // $table is only ever one of the LEVELS literals above, never request input.
         $stmt = $this->db->prepare(
             "SELECT id, market, libelle, statut, image, icon, display_image, order_categorie, created
-             FROM $level WHERE market = ? AND etat = '1'
+             FROM $table WHERE $where AND etat = '1'
              ORDER BY id DESC"
         );
-        $stmt->execute([$marketId]);
+        $stmt->execute($params);
         $rows = $stmt->fetchAll();
         foreach ($rows as &$row) {
-            $row['level'] = $level;
+            $row['level'] = $table;
         }
         return $rows;
     }
