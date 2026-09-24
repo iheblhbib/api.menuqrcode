@@ -83,7 +83,11 @@ class AuthController
     public function me(Request $request): void
     {
         $auth = $request->auth;
-        unset($auth['iat'], $auth['exp'], $auth['type']);
+        // The JWT's own subject claim is "sub" (standard claim name), but the
+        // client's AuthAccount model expects "id" — same shape login() already
+        // returns in its "account" object.
+        $auth['id'] = $auth['sub'];
+        unset($auth['sub'], $auth['iat'], $auth['exp'], $auth['type']);
         Response::success($auth);
     }
 
