@@ -30,6 +30,19 @@ class ArticleRepository
         return $stmt->fetchAll();
     }
 
+    /** Niveau-1 markets only: articles directly at the market root, no category at all. */
+    public function listForMarket(int $marketId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT id, market, categorie, libelle, prix, description, image, statut, display_image, icon, order_categorie, type, created
+             FROM article
+             WHERE market = ? AND categorie IS NULL AND etat = '0'
+             ORDER BY order_categorie ASC, id ASC"
+        );
+        $stmt->execute([$marketId]);
+        return $stmt->fetchAll();
+    }
+
     public function find(int $id): ?array
     {
         $stmt = $this->db->prepare(
@@ -41,9 +54,14 @@ class ArticleRepository
         return $row ?: null;
     }
 
+    /** `$data['categorie']` may be null — a niveau-1 market's article sits directly at the market root. */
     public function create(array $data): int
     {
-        $nextOrder = $this->nextOrder((int) $data['categorie']);
+        $categoryId = $data['categorie'] ?? null;
+        $marketId = (int) $data['market'];
+        $nextOrder = $categoryId !== null
+            ? $this->nextOrder((int) $categoryId)
+            : $this->nextOrderForMarket($marketId);
 
         $stmt = $this->db->prepare(
             "INSERT INTO article (gestionnaire, market, categorie, libelle, prix, description, image, statut, display_image, icon, order_categorie, type, etat, created)
@@ -51,8 +69,8 @@ class ArticleRepository
         );
         $stmt->execute([
             ':gestionnaire' => $data['gestionnaire'],
-            ':market' => $data['market'],
-            ':categorie' => $data['categorie'],
+            ':market' => $marketId,
+            ':categorie' => $categoryId,
             ':libelle' => $data['libelle'],
             ':prix' => $data['prix'] ?? null,
             ':description' => $data['description'] ?? null,
@@ -106,6 +124,19 @@ class ArticleRepository
         return $stmt->fetchAll();
     }
 
+    /** Niveau-1 markets only: the market-root article list's own Archive icon. */
+    public function listDeletedForMarketRoot(int $marketId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT id, market, categorie, libelle, prix, description, image, statut, display_image, icon, order_categorie, type, created
+             FROM article
+             WHERE market = ? AND categorie IS NULL AND etat = '1'
+             ORDER BY id DESC"
+        );
+        $stmt->execute([$marketId]);
+        return $stmt->fetchAll();
+    }
+
     /** Which market this row belongs to, regardless of etat (deleted or not) — for restore's ownership check. */
     public function marketOfAny(int $id): ?int
     {
@@ -125,6 +156,16 @@ class ArticleRepository
     {
         $stmt = $this->db->prepare("SELECT MAX(order_categorie) AS max_order FROM article WHERE categorie = ? AND etat = '0'");
         $stmt->execute([$categoryId]);
+        $max = $stmt->fetch()['max_order'] ?? 0;
+        return ((int) $max) + 1;
+    }
+
+    private function nextOrderForMarket(int $marketId): int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT MAX(order_categorie) AS max_order FROM article WHERE market = ? AND categorie IS NULL AND etat = '0'"
+        );
+        $stmt->execute([$marketId]);
         $max = $stmt->fetch()['max_order'] ?? 0;
         return ((int) $max) + 1;
     }

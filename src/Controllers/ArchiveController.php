@@ -74,7 +74,22 @@ class ArchiveController
             // The market-root Menu screen's own Archive — deleted items at
             // whichever level roots() currently resolves to for this market.
             $rootLevel = $tree->roots($marketId)['level'];
+
+            // Niveau 1: no category level at all, so the market root's own
+            // deleted items are articles, not tree nodes.
+            if ($rootLevel === 'article') {
+                $items = array_map(
+                    fn (array $row) => $this->present($row, 'article', true),
+                    (new ArticleRepository())->listDeletedForMarketRoot($marketId)
+                );
+                Response::success($items);
+                return;
+            }
+
             $rows = $tree->rootDeleted($rootLevel, $marketId);
+            $items = array_map(fn (array $row) => $this->present($row, $row['level'], false), $rows);
+            Response::success($items);
+            return;
         }
 
         $items = array_map(fn (array $row) => $this->present($row, $row['level'], false), $rows);

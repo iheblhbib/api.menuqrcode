@@ -66,14 +66,31 @@ class CategoryTreeRepository
             return ['level' => 'categorie', 'items' => $cat];
         }
 
+        // Niveau 1: no category level at all, articles sit directly at the
+        // market root. Checked before the niveau fallback (not just when
+        // niveau === '1') so a market that already has real root articles
+        // is found the same way every other level already is above.
+        if ($this->hasRootArticles($marketId)) {
+            return ['level' => 'article', 'items' => []];
+        }
+
         return ['level' => $this->rootLevelForEmptyMarket($marketId), 'items' => []];
+    }
+
+    private function hasRootArticles(int $marketId): bool
+    {
+        $stmt = $this->db->prepare(
+            "SELECT 1 FROM article WHERE market = ? AND categorie IS NULL AND etat = '0' LIMIT 1"
+        );
+        $stmt->execute([$marketId]);
+        return (bool) $stmt->fetchColumn();
     }
 
     private const NIVEAU_TO_ROOT_LEVEL = [
         '4' => 'categorie_sub_sub',
         '3' => 'categorie_sub',
         '2' => 'categorie',
-        '1' => 'categorie',
+        '1' => 'article',
     ];
 
     private function rootLevelForEmptyMarket(int $marketId): string

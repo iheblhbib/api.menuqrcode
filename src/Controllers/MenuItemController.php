@@ -18,6 +18,16 @@ class MenuItemController
 {
     public function index(Request $request): void
     {
+        // A niveau-1 market has no category level at all — its articles sit
+        // directly at the market root, listed by market_id instead.
+        if ($request->input('market_id') !== null) {
+            $marketId = (int) $request->input('market_id');
+            MarketScope::assertOwned($request, $marketId);
+            $articles = array_map([$this, 'withImageUrl'], (new ArticleRepository())->listForMarket($marketId));
+            Response::success($articles);
+            return;
+        }
+
         Validator::required($request->query, ['category_id']);
         $categoryId = (int) $request->input('category_id');
         $this->assertCategoryOwned($request, $categoryId);
@@ -33,7 +43,34 @@ class MenuItemController
 
     public function store(Request $request): void
     {
-        Validator::required($request->body, ['category_id', 'libelle']);
+        Validator::required($request->body, ['libelle']);
+
+        // A niveau-1 market has no category level — creating an article
+        // there takes market_id instead of category_id, and categorie stays
+        // null (the market-root article).
+        if ($request->input('market_id') !== null) {
+            $marketId = (int) $request->input('market_id');
+            MarketScope::assertOwned($request, $marketId);
+
+            $repo = new ArticleRepository();
+            $id = $repo->create([
+                'gestionnaire' => $request->auth['client_id'],
+                'market' => $marketId,
+                'categorie' => null,
+                'libelle' => $request->input('libelle'),
+                'prix' => $request->input('prix'),
+                'description' => $request->input('description'),
+                'image' => $request->input('image'),
+                'statut' => $request->input('statut', 'Activer'),
+                'display_image' => $request->input('display_image'),
+                'type' => $request->input('type', 'product'),
+            ]);
+
+            Response::success($this->withImageUrl($repo->find($id)), 201);
+            return;
+        }
+
+        Validator::required($request->body, ['category_id']);
         $categoryId = (int) $request->input('category_id');
         $category = $this->assertCategoryOwned($request, $categoryId);
 
